@@ -126,7 +126,6 @@ class SC_FEGAN_Trainer(_Trainer):
         #
         args.netG = sc_fegan()
         args.netD = sn_patch_gan()
-        args.model = 'SC-FEGAN'
         #
         super(SC_FEGAN_Trainer, self).__init__(args)
         # rewrite the loss function.

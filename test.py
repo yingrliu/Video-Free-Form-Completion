@@ -5,12 +5,12 @@ import argparse, os
 
 
 parser = argparse.ArgumentParser(description="")
-parser.add_argument('--dataset', type=str, default='voxceleb1',
+parser.add_argument('--dataset', type=str, default='davis',
                     choices=['voxceleb1', 'davis'],
                     help=' ')
 parser.add_argument('--Optim', type=str, default='adam',
                     help=' ')
-parser.add_argument('--checkname', type=str, default='test',
+parser.add_argument('--checkname', type=str, default='SC-FEGAN',
                     help=' ')
 parser.add_argument('--num_workers', type=int, default=1,
                     metavar='N', help='dataloader threads')

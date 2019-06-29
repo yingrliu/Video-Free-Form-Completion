@@ -22,8 +22,15 @@ def sketchGenerator(img):
     """
     gs_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     gs_img = cv2.equalizeHist(gs_img)
+    gs_img = cv2.medianBlur(gs_img, 5)
     mean = np.mean(gs_img)
-    sketch = np.asarray(cv2.Canny(gs_img, 0.25*mean, 1.25*mean), dtype=np.float32)
+    sketch = cv2.Canny(gs_img, mean * 0.5, mean)
+    #sketch =  cv2.Laplacian(gs_img, cv2.CV_16S, ksize=3)
+    # sketch = cv2.medianBlur(sketch, 5)
+    # mean = np.mean(sketch)
+    # sketch = cv2.Canny(sketch, mean * 0.75, mean)
+    #
+    sketch = np.asarray(sketch,dtype=np.float32)
     sketch_tensor = torch.from_numpy(sketch).unsqueeze(0)
     return sketch, sketch_tensor
 
@@ -100,16 +107,73 @@ def colorGenerator_by_Filter(img):
     # mean = np.mean(img)
     # img = img - mean
     # img = img * 1.5 + mean * 0.75
-    pixels = np.reshape(img, newshape=(-1, 3))
-    kmean = KMeans(n_clusters=12, random_state=0).fit(pixels)
-    labels, centroid = kmean.labels_, kmean.cluster_centers_
-    for i in range(12):
-        idx = np.where(labels == i)[0]
-        pixels[idx] = centroid[i]
-        print()
-    #
-    img = np.reshape(pixels, newshape=img.shape)
-    return img
+    # n_clusters = 12
+    # pixels = np.reshape(img, newshape=(-1, 3))
+    # pixels = np.sort(pixels)
+    # idx = len(pixels) // n_clusters
+    # center = pixels[[idx * i for i in range(n_clusters)]]
+    # kmean = KMeans(n_clusters=n_clusters, init=center, random_state=0).fit(pixels)
+    # labels, centroid = kmean.labels_, kmean.cluster_centers_
+    # for i in range(n_clusters):
+    #     idx = np.where(labels == i)[0]
+    #     pixels[idx] = centroid[i]
+    #     print()
+    # #
+    # img = np.reshape(pixels, newshape=img.shape)
+    color = oilPainting(img, 4, 6, 2)
+    color_tensor = torch.from_numpy(img).unsqueeze(0)
+    return color, color_tensor
+
+"""
+https://blog.csdn.net/qq_40755643/article/details/84787204
+"""
+def oilPainting(img, templateSize, bucketSize, step):  # templateSize模板大小,bucketSize桶阵列,step模板滑动步长
+    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    gray = ((gray / 256) * bucketSize).astype(int)  # 灰度图在桶中的所属分区
+    h, w = img.shape[:2]
+
+    oilImg = np.zeros(img.shape, np.uint8)  # 用来存放过滤图像
+
+    for i in range(0, h, step):
+
+        top = i - templateSize
+        bottom = i + templateSize + 1
+        if top < 0:
+            top = 0
+        if bottom >= h:
+            bottom = h - 1
+
+        for j in range(0, w, step):
+
+            left = j - templateSize
+            right = j + templateSize + 1
+            if left < 0:
+                left = 0
+            if right >= w:
+                right = w - 1
+
+            # 灰度等级统计
+            buckets = np.zeros(bucketSize, np.uint8)  # 桶阵列，统计在各个桶中的灰度个数
+            bucketsMean = [0, 0, 0]  # 对像素最多的桶，求其桶中所有像素的三通道颜色均值
+            # 对模板进行遍历
+            for c in range(top, bottom):
+                for r in range(left, right):
+                    buckets[gray[c, r]] += 1  # 模板内的像素依次投入到相应的桶中，有点像灰度直方图
+
+            maxBucket = np.max(buckets)  # 找出像素最多的桶以及它的索引
+            maxBucketIndex = np.argmax(buckets)
+
+            for c in range(top, bottom):
+                for r in range(left, right):
+                    if gray[c, r] == maxBucketIndex:
+                        bucketsMean += img[c, r]
+            bucketsMean = (bucketsMean / maxBucket).astype(int)  # 三通道颜色均值
+
+            # 油画图
+            for m in range(step):
+                for n in range(step):
+                    oilImg[m + i, n + j] = (bucketsMean[0], bucketsMean[1], bucketsMean[2])
+    return oilImg
 
 #######################################################################################################################
 MaxThin = 10
@@ -140,21 +204,21 @@ def maskGenerator(img):
 """
 Unit-test code.
 """
-import matplotlib.pyplot as plt
-img = cv2.imread('../Data/DAVIS/JPEGImages/480p/bmx-bumps/00001.jpg')
-img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-f, axarr = plt.subplots(2, 2)
-[axi.set_axis_off() for axi in axarr.ravel()]
-axarr[0, 0].imshow(img)
-axarr[0, 0].set_title("Image")
-sketch, sketch_tensor = sketchGenerator(img)
-axarr[0, 1].imshow(sketch)
-axarr[0, 1].set_title("Sketch")
-# color, color_tensor = colorGenerator_by_Parser(img)
-color = colorGenerator_by_Filter(img)
-axarr[1, 0].imshow(color)
-axarr[1, 0].set_title("Color-Map")
-mask, mask_tensor = maskGenerator(img)
-axarr[1, 1].imshow(mask)
-axarr[1, 1].set_title("Mask")
-plt.show()
+# import matplotlib.pyplot as plt
+# img = cv2.imread('../Data/DAVIS/JPEGImages/480p/bike-trial/00001.jpg')
+# img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+# f, axarr = plt.subplots(2, 2)
+# [axi.set_axis_off() for axi in axarr.ravel()]
+# axarr[0, 0].imshow(img)
+# axarr[0, 0].set_title("Image")
+# sketch, sketch_tensor = sketchGenerator(img)
+# axarr[0, 1].imshow(sketch)
+# axarr[0, 1].set_title("Sketch")
+# # color, color_tensor = colorGenerator_by_Parser(img)
+# color = colorGenerator_by_Filter(img)
+# axarr[1, 0].imshow(color)
+# axarr[1, 0].set_title("Color-Map")
+# mask, mask_tensor = maskGenerator(img)
+# axarr[1, 1].imshow(mask)
+# axarr[1, 1].set_title("Mask")
+# plt.show()

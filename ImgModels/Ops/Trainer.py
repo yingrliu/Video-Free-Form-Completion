@@ -4,6 +4,7 @@ Implementation of trainer to train and eval the model.
 """
 from ImgModels.Ops.Saver import Saver
 from Toolkit.VoxCelebData import ImgData as VoxData
+from Toolkit.DavisData import ImgData as DavisData
 from copy import deepcopy
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
@@ -12,6 +13,7 @@ import torch
 import os
 import warnings
 import torch.nn as nn
+import numpy as np
 
 class _Trainer():
     def __init__(self, args, **kwargs):
@@ -32,7 +34,7 @@ class _Trainer():
         self.writer_logdir = os.path.join(self.saver.experiment_dir, 'tensorboard')
         #
         self.trainSet, self.testSet = _dataloader(args.split_ratio, args.batch_size, args.shuffle,
-                                                      args.num_workers, args.pin_memory, args.resize)
+                                                      args.num_workers, args.pin_memory, args.resize, args.dataset)
         # Define Optimizer
         if args.Optim.lower() == 'sgd':
             self.OptimG = torch.optim.SGD(self.netG.parameters(), lr=args.lrG, weight_decay=args.weight_decay,
@@ -178,7 +180,8 @@ class _Trainer():
 
 
 
-def _dataloader(split_ratio=0.8, batch_size=1, shuffle=True, num_workers=4, pin_memory=True, resize=(512, 512)):
+def _dataloader(split_ratio=0.8, batch_size=1, shuffle=True, num_workers=4, pin_memory=True, resize=(512, 512),
+                dataset='voxceleb1'):
     """
     generate the dataloader for training/testing.
     :param batch_size:
@@ -187,21 +190,31 @@ def _dataloader(split_ratio=0.8, batch_size=1, shuffle=True, num_workers=4, pin_
     :param pin_memory:
     :return:
     """
-    trainSet = VoxData(resize=resize)
-    testSet = deepcopy(trainSet)
-    #
-    split = int(len(trainSet.files) * split_ratio)
-    trainSet.files = trainSet.files[0:split]
-    testSet.files = testSet.files[split:]
-    #
-    trainSet.sketches = trainSet.sketches[0:split]
-    testSet.sketches = testSet.sketches[split:]
-    #
-    trainSet.colors = trainSet.colors[0:split]
-    testSet.colors = testSet.colors[split:]
+    if dataset.lower() == 'voxceleb1':
+        trainSet = VoxData(resize=resize)
+        testSet = deepcopy(trainSet)
+        #
+        split = int(len(trainSet.files) * split_ratio)
+        trainSet.files = trainSet.files[0:split]
+        testSet.files = testSet.files[split:]
+        #
+        trainSet.sketches = trainSet.sketches[0:split]
+        testSet.sketches = testSet.sketches[split:]
+        #
+        trainSet.colors = trainSet.colors[0:split]
+        testSet.colors = testSet.colors[split:]
+    elif dataset.lower() =='davis':
+        trainSet = DavisData(resize=resize, train=True)
+        testSet = DavisData(resize=resize, train=False)
+    else:
+        raise ValueError("dataset should be voxceleb1/davis.")
     # create dataloader.
-    trainSet = DataLoader(trainSet, batch_size, num_workers=num_workers, shuffle=shuffle, pin_memory=pin_memory)
-    testSet = DataLoader(testSet, batch_size, num_workers=num_workers, shuffle=False, pin_memory=pin_memory)
+    def worker_init_fn(worker_id):
+        np.random.seed(np.random.get_state()[1][0] + worker_id)
+    trainSet = DataLoader(trainSet, batch_size, num_workers=num_workers, shuffle=shuffle, pin_memory=pin_memory,
+                          worker_init_fn=worker_init_fn)
+    testSet = DataLoader(testSet, batch_size, num_workers=num_workers, shuffle=False, pin_memory=pin_memory,
+                         worker_init_fn=worker_init_fn)
     return trainSet, testSet
 
 def _checkargs(args):
@@ -213,6 +226,9 @@ def _checkargs(args):
     # load defaul setting to some arguments.
     ################################################################################################################
     # Training setting I.
+    if not hasattr(args, 'dataset'):
+        warnings.warn("No dataset is specified. Use default value (DAVIS).")
+        args.dataset = 'DAVIS'
     if not hasattr(args, 'split_ratio'):
         warnings.warn("No split ratio is specified for the dataset. Use default value (0.8).")
         args.split_ratio = 0.8

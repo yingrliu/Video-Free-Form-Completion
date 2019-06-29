@@ -10,7 +10,6 @@ import cv2
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 from PIL import Image
 from torchvision import transforms
 from torch.utils.data import Dataset
@@ -29,14 +28,22 @@ if not os.path.exists(ColImgDir):
 if not os.path.exists(SketchDir):
     os.mkdir(SketchDir)
 #
-transform_train = transforms.Compose([
-    transforms.Resize(size=(256, 256)),
-    transforms.ToTensor(),
-    ]
-)
 
 class ImgData(Dataset):
-    def __init__(self, root_dir=ImgDir, transform=transform_train, resize=None):
+    def __init__(self, root_dir=ImgDir, resize=None):
+        #
+        if resize:
+            transform_train = transforms.Compose([
+                transforms.Resize(size=resize),
+                transforms.ToTensor(),
+            ]
+            )
+        else:
+            transform_train = transforms.Compose([
+                transforms.ToTensor(),
+            ]
+            )
+        #
         self.files = []
         self.colors = []
         self.sketches = []
@@ -95,7 +102,7 @@ class ImgData(Dataset):
                         cv2.imwrite(mask_path, 255 * mask)
                         #plt.imsave(mask_path, 1 - mask, cmap=cm.binary)
                     self.masks.append(mask_path)
-        self.transform = transform
+        self.transform = transform_train
         return
 
     def __len__(self):
