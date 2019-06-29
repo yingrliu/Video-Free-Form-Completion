@@ -33,6 +33,8 @@ class _Trainer():
         self.saver.save_experiment_config()
         self.writer_logdir = os.path.join(self.saver.experiment_dir, 'tensorboard')
         #
+        if args.dataset.lower() =='davis':
+            args.resize = (480, 854)
         self.trainSet, self.testSet = _dataloader(args.split_ratio, args.batch_size, args.shuffle,
                                                       args.num_workers, args.pin_memory, args.resize, args.dataset)
         # Define Optimizer
