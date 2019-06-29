@@ -21,16 +21,16 @@ ImgDir = os.path.join(abs_path, "data", "VoxCeleb1", "images")
 MaskDir = os.path.join(abs_path, "data", "VoxCeleb1", "masks")
 ColImgDir = os.path.join(abs_path, "data", "VoxCeleb1", "colors")
 SketchDir = os.path.join(abs_path, "data", "VoxCeleb1", "sketchs")
-if not os.path.exists(MaskDir):
-    os.mkdir(MaskDir)
-if not os.path.exists(ColImgDir):
-    os.mkdir(ColImgDir)
-if not os.path.exists(SketchDir):
-    os.mkdir(SketchDir)
 #
 
 class ImgData(Dataset):
     def __init__(self, root_dir=ImgDir, resize=None):
+        if not os.path.exists(MaskDir):
+            os.makedirs(MaskDir)
+        if not os.path.exists(ColImgDir):
+            os.makedirs(ColImgDir)
+        if not os.path.exists(SketchDir):
+            os.makedirs(SketchDir)
         #
         if resize:
             transform_train = transforms.Compose([
