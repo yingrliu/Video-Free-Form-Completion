@@ -170,5 +170,6 @@ def preprocessing(listset):
 
 
 
-if __name__ == '__main__':
+def mp_preprocessing():
     preprocessing(train_list)
+    preprocessing(test_list)

@@ -1,6 +1,7 @@
 from ImgModels.Ops import _Trainer
 from ImgModels.SC_FEGAN import sc_fegan, sn_patch_gan, SC_FEGAN_Trainer
 import argparse, os
+from Toolkit.DavisData import mp_preprocessing
 
 
 
@@ -36,5 +37,6 @@ args.labmda_sty = 120
 args.steps_dis = 1
 
 if __name__ == "__main__":
-    trainer = SC_FEGAN_Trainer(args)
-    trainer.train()
+    # trainer = SC_FEGAN_Trainer(args)
+    # trainer.train()
+    mp_preprocessing()
