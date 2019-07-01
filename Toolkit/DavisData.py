@@ -15,6 +15,7 @@ from torchvision import transforms
 from torch.utils.data import Dataset
 from Toolkit.PStoolkit import sketchGenerator, maskGenerator
 from Toolkit.PStoolkit import colorGenerator_by_Filter as colorGenerator
+from multiprocessing import Pool
 
 abs_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ImgDir = os.path.join(abs_path, "data", "DAVIS", "JPEGImages", "480p")
@@ -123,8 +124,51 @@ class ImgData(Dataset):
                 'Mask': self.transform(mask_tensor)
                 }
 
+# multi-processing.
+def get_color_sketch(cla):
+    #
+    ImgSubDir = os.path.join(ImgDir, cla)
+    ColSubDir = os.path.join(ColImgDir, cla)
+    SketchSubDir = os.path.join(SketchDir, cla)
+    if not os.path.exists(ColSubDir):
+        os.makedirs(ColSubDir)
+    if not os.path.exists(SketchSubDir):
+        os.makedirs(SketchSubDir)
+    files = os.listdir(ImgSubDir)
+    for file in files:
+        file_path = os.path.join(ImgSubDir, file)
+        assert os.path.isfile(file_path) and file_path[-3:] == 'jpg'
+        # access color.
+        color_path = os.path.join(ColSubDir, file)
+        if not os.path.exists(color_path):
+            img = cv2.imread(file_path)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            color = colorGenerator(img)[0]
+            cv2.imwrite(color_path, color)
+        # access sketch.
+        sketch_path = os.path.join(SketchSubDir, file)
+        if not os.path.exists(sketch_path):
+            img = cv2.imread(file_path)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            sketch = sketchGenerator(img)[0]
+            cv2.imwrite(sketch_path, sketch)
+    return
 
-# """
-# Unit-test.
-# """
-# ImgData()
+def preprocessing(listset):
+    """
+    preprocess the datasets.
+    :param listset: the list of process file.
+    :return:
+    """
+    # access the list of images.
+    for imagelist in listset:
+        with open(imagelist, 'r') as f:
+            classes = f.read().splitlines()
+            pool = Pool()
+            pool.map(get_color_sketch, classes)
+    return
+
+
+
+if __name__ == '__main__':
+    preprocessing(train_list)
