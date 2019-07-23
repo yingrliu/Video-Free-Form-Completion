@@ -28,70 +28,72 @@ class _Trainer():
                 self.netD = nn.DataParallel(self.netD)
         #
         self.args = args
-        # Define Saver and Tensorboard Writer.
-        self.saver = Saver(args)
-        self.saver.save_experiment_config()
-        self.writer_logdir = os.path.join(self.saver.experiment_dir, 'tensorboard')
-        #
-        if args.dataset.lower() =='davis':
-            args.resize = (480, 854)
-        self.trainSet, self.testSet = _dataloader(args.split_ratio, args.batch_size, args.shuffle,
-                                                      args.num_workers, args.pin_memory, args.resize, args.dataset)
-        # Define Optimizer
-        if args.Optim.lower() == 'sgd':
-            self.OptimG = torch.optim.SGD(self.netG.parameters(), lr=args.lrG, weight_decay=args.weight_decay,
-                                          momentum=args.momentum, nesterov=args.nesterov)
-            self.OptimD = torch.optim.SGD(self.netD.parameters(), lr=args.lrD, weight_decay=args.weight_decay,
-                                          momentum=args.momentum, nesterov=args.nesterov)
-        elif args.Optim.lower() == 'adam':
-            self.OptimG = torch.optim.Adam(self.netG.parameters(), lr=args.lrG)
-            self.OptimD = torch.optim.Adam(self.netD.parameters(), lr=args.lrD)
-        elif args.Optim.lower() == 'rmsprop':
-            self.OptimG = torch.optim.RMSprop(self.netG.parameters(), lr=args.lrG, weight_decay=args.weight_decay,
-                                         momentum=args.momentum)
-            self.OptimD = torch.optim.RMSprop(self.netD.parameters(), lr=args.lrD, weight_decay=args.weight_decay,
-                                         momentum=args.momentum)
-        else:
-            raise ValueError("This project only supports SGD/Adam/RMSprop.")
-        #
-        self.lossG, self.lossD = 0., 0.
-        # Setup LR scheduler.
-        if args.LRscheduler.lower() == 'steplr':
-            self.LRschedulerG = torch.optim.lr_scheduler.StepLR(optimizer=self.OptimG, step_size=args.step_size,
-                                                                gamma=args.gamma)
-            self.LRschedulerD = torch.optim.lr_scheduler.StepLR(optimizer=self.OptimD, step_size=args.step_size,
-                                                                gamma=args.gamma)
-        elif args.LRscheduler.lower() == 'multisteplr':
-            self.LRschedulerG = torch.optim.lr_scheduler.MultiStepLR(optimizer=self.OptimG, milestones=args.milestones,
-                                                                gamma=args.gamma)
-            self.LRschedulerD = torch.optim.lr_scheduler.MultiStepLR(optimizer=self.OptimD, milestones=args.milestones,
-                                                                gamma=args.gamma)
-        elif args.LRscheduler.lower() == 'exponentiallr':
-            self.LRschedulerG = torch.optim.lr_scheduler.ExponentialLR(optimizer=self.OptimG, gamma=args.gamma)
-            self.LRschedulerD = torch.optim.lr_scheduler.ExponentialLR(optimizer=self.OptimD, gamma=args.gamma)
-        elif args.LRscheduler.lower() == 'cosineAnnealinglr':
-            self.LRschedulerG = torch.optim.lr_scheduler.CosineAnnealingLr(optimizer=self.OptimG, T_max=args.T_max,
-                                                                           eta_min=args.eta_min)
-            self.LRschedulerD = torch.optim.lr_scheduler.CosineAnnealingLr(optimizer=self.OptimD, T_max=args.T_max,
-                                                                           eta_min=args.eta_min)
-        elif args.LRscheduler.lower() == 'reducelronplateau':
-            self.LRschedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.OptimG, mode=args.mode,
-                                                                           factor=args.factor, patience=args.patience,
-                                                                           verbose=args.verbose,
-                                                                           threshold=args.threshold,
-                                                                           threshold_mode=args.threshold_mode,
-                                                                           cooldown=args.cooldown, min_lr=args.min_lr)
-            self.LRschedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.OptimD, mode=args.mode,
-                                                                           factor=args.factor, patience=args.patience,
-                                                                           verbose=args.verbose,
-                                                                           threshold=args.threshold,
-                                                                           threshold_mode=args.threshold_mode,
-                                                                           cooldown=args.cooldown, min_lr=args.min_lr)
-        else:
-            raise ValueError("This project only supports the following LR scheduler: "
-                             "StepLR/MultiStepLR/CosineAnnealingLR/ReduceLROnPlateau.")
-        #
-        self.cur_epoch = 0
+        # Define Saver and Tensorboard Writer for training phrase only.
+        if hasattr(args, 'mode') and args.mode == 'train':
+            self.saver = Saver(args)
+            self.saver.save_experiment_config()
+            self.writer_logdir = os.path.join(self.saver.experiment_dir, 'tensorboard')
+            #
+            if args.dataset.lower() =='davis':
+                args.resize = (384, 512)
+            print(args.resize)
+            self.trainSet, self.testSet = _dataloader(args.split_ratio, args.batch_size, args.shuffle,
+                                                          args.num_workers, args.pin_memory, args.resize, args.dataset)
+            # Define Optimizer
+            if args.Optim.lower() == 'sgd':
+                self.OptimG = torch.optim.SGD(self.netG.parameters(), lr=args.lrG, weight_decay=args.weight_decay,
+                                              momentum=args.momentum, nesterov=args.nesterov)
+                self.OptimD = torch.optim.SGD(self.netD.parameters(), lr=args.lrD, weight_decay=args.weight_decay,
+                                              momentum=args.momentum, nesterov=args.nesterov)
+            elif args.Optim.lower() == 'adam':
+                self.OptimG = torch.optim.Adam(self.netG.parameters(), lr=args.lrG)
+                self.OptimD = torch.optim.Adam(self.netD.parameters(), lr=args.lrD)
+            elif args.Optim.lower() == 'rmsprop':
+                self.OptimG = torch.optim.RMSprop(self.netG.parameters(), lr=args.lrG, weight_decay=args.weight_decay,
+                                             momentum=args.momentum)
+                self.OptimD = torch.optim.RMSprop(self.netD.parameters(), lr=args.lrD, weight_decay=args.weight_decay,
+                                             momentum=args.momentum)
+            else:
+                raise ValueError("This project only supports SGD/Adam/RMSprop.")
+            #
+            self.lossG, self.lossD = 0., 0.
+            # Setup LR scheduler.
+            if args.LRscheduler.lower() == 'steplr':
+                self.LRschedulerG = torch.optim.lr_scheduler.StepLR(optimizer=self.OptimG, step_size=args.step_size,
+                                                                    gamma=args.gamma)
+                self.LRschedulerD = torch.optim.lr_scheduler.StepLR(optimizer=self.OptimD, step_size=args.step_size,
+                                                                    gamma=args.gamma)
+            elif args.LRscheduler.lower() == 'multisteplr':
+                self.LRschedulerG = torch.optim.lr_scheduler.MultiStepLR(optimizer=self.OptimG, milestones=args.milestones,
+                                                                    gamma=args.gamma)
+                self.LRschedulerD = torch.optim.lr_scheduler.MultiStepLR(optimizer=self.OptimD, milestones=args.milestones,
+                                                                    gamma=args.gamma)
+            elif args.LRscheduler.lower() == 'exponentiallr':
+                self.LRschedulerG = torch.optim.lr_scheduler.ExponentialLR(optimizer=self.OptimG, gamma=args.gamma)
+                self.LRschedulerD = torch.optim.lr_scheduler.ExponentialLR(optimizer=self.OptimD, gamma=args.gamma)
+            elif args.LRscheduler.lower() == 'cosineAnnealinglr':
+                self.LRschedulerG = torch.optim.lr_scheduler.CosineAnnealingLr(optimizer=self.OptimG, T_max=args.T_max,
+                                                                               eta_min=args.eta_min)
+                self.LRschedulerD = torch.optim.lr_scheduler.CosineAnnealingLr(optimizer=self.OptimD, T_max=args.T_max,
+                                                                               eta_min=args.eta_min)
+            elif args.LRscheduler.lower() == 'reducelronplateau':
+                self.LRschedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.OptimG, mode=args.mode,
+                                                                               factor=args.factor, patience=args.patience,
+                                                                               verbose=args.verbose,
+                                                                               threshold=args.threshold,
+                                                                               threshold_mode=args.threshold_mode,
+                                                                               cooldown=args.cooldown, min_lr=args.min_lr)
+                self.LRschedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.OptimD, mode=args.mode,
+                                                                               factor=args.factor, patience=args.patience,
+                                                                               verbose=args.verbose,
+                                                                               threshold=args.threshold,
+                                                                               threshold_mode=args.threshold_mode,
+                                                                               cooldown=args.cooldown, min_lr=args.min_lr)
+            else:
+                raise ValueError("This project only supports the following LR scheduler: "
+                                 "StepLR/MultiStepLR/CosineAnnealingLR/ReduceLROnPlateau.")
+            #
+            self.cur_epoch = 0
         return
 
     def saveModels(self):
@@ -117,14 +119,21 @@ class _Trainer():
         """
         path = PATH if PATH else os.path.join(self.saver.experiment_dir, 'CheckPoint.pth-{:04d}.tar'.format(0))
         print("-- Load Generator from %s." % path)
-        checkpoint = torch.load(path)
+        if torch.cuda.is_available():
+            checkpoint = torch.load(path)
+        else:
+            checkpoint = torch.load(path, map_location='cpu')
         self.netG.load_state_dict(checkpoint['Generator'])
         return
 
     def loadModels(self, PATH):
         path = PATH if PATH else os.path.join(self.saver.experiment_dir, 'CheckPoint.pth.tar')
         print("-- Load Model from %s." % path)
-        checkpoint = torch.load(path)
+        if torch.cuda.is_available():
+            checkpoint = torch.load(path)
+        else:
+            checkpoint = torch.load(path, map_location='cpu')
+        #
         self.netG.load_state_dict(checkpoint['Generator'])
         self.netD.load_state_dict(checkpoint['Discriminator'])
         self.OptimG.load_state_dict(checkpoint['optimG'])

@@ -120,7 +120,7 @@ def colorGenerator_by_Filter(img):
     #     print()
     # #
     # img = np.reshape(pixels, newshape=img.shape)
-    color = oilPainting(img, 4, 6, 2)
+    color = oilPainting(img, 4, 8, 2)
     color_tensor = torch.from_numpy(img).unsqueeze(0)
     return color, color_tensor
 
@@ -172,6 +172,8 @@ def oilPainting(img, templateSize, bucketSize, step):  # templateSize模板大�
             # 油画图
             for m in range(step):
                 for n in range(step):
+                    if m + i >= h or n + j >= w:
+                        continue
                     oilImg[m + i, n + j] = (bucketsMean[0], bucketsMean[1], bucketsMean[2])
     return oilImg
 

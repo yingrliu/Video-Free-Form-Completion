@@ -26,14 +26,15 @@ args.abs_path = os.path.dirname(os.path.abspath(__file__))
 
 args.lrD = 5e-5
 args.lrG = 5e-4
-args.batch_size = 24
+# args.batch_size = 24
 args.cuda = True
-
+args.visualize = True
 #
 args.lambda_per = 0.05
 args.lambda_gt = 0.001
 args.lambda_sn = 0.001
-args.labmda_sty = 120
+args.lambda_sty = 120
+args.lambda_tv = 0.1
 args.steps_dis = 1
 
 if __name__ == "__main__":
