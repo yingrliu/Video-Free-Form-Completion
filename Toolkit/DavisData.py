@@ -98,7 +98,7 @@ class ImgData(Dataset):
                             img = cv2.imread(file_path)
                             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                             color = colorGenerator(img)[0]
-                            cv2.imwrite(color_path, cv2.cvtColor(color, cv2.COLOR_RGB2BGR))
+                            cv2.imwrite(color_path, color)
                         # access sketch.
                         sketch_path = os.path.join(SketchSubDir, file)
                         self.sketches.append(sketch_path)
@@ -142,15 +142,12 @@ def get_color_sketch(cla):
         color_path = os.path.join(ColSubDir, file)
         if not os.path.exists(color_path):
             img = cv2.imread(file_path)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             color = colorGenerator(img)[0]
-            cv2.imwrite(color_path, cv2.cvtColor(color, cv2.COLOR_RGB2BGR))
+            cv2.imwrite(color_path, color)
         # access sketch.
         sketch_path = os.path.join(SketchSubDir, file)
         if not os.path.exists(sketch_path):
-            img = cv2.imread(file_path)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            sketch = sketchGenerator(img)[0]
+            sketch = sketchGenerator(file_path)[0]
             cv2.imwrite(sketch_path, sketch)
     return
 
@@ -164,8 +161,10 @@ def preprocessing(listset):
     for imagelist in listset:
         with open(imagelist, 'r') as f:
             classes = f.read().splitlines()
-            pool = Pool(processes=4)
-            pool.map(get_color_sketch, classes)
+            pool = Pool()
+            # pool.map(get_color_sketch, classes)
+            for cla in classes:
+                get_color_sketch(cla)
     return
 
 

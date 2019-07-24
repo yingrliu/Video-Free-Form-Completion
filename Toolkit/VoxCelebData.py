@@ -14,7 +14,7 @@ from PIL import Image
 from torchvision import transforms
 from torch.utils.data import Dataset
 from Toolkit.PStoolkit import sketchGenerator, maskGenerator
-from Toolkit.PStoolkit import colorGenerator_by_Parser as colorGenerator
+from Toolkit.PStoolkit import colorGenerator_by_Filter as colorGenerator
 
 abs_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ImgDir = os.path.join(abs_path, "data", "VoxCeleb1", "images")
