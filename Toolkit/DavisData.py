@@ -9,11 +9,11 @@ This file contains:
 import os
 import cv2
 import numpy as np
-from tqdm import tqdm
+import torch
 from PIL import Image
 from torchvision import transforms
 from torch.utils.data import Dataset
-from Toolkit.PStoolkit import sketchGenerator, maskGenerator
+from Toolkit.PStoolkit import sketchGenerator, maskGenerator, strokeGenerator
 from Toolkit.PStoolkit import colorGenerator_by_Filter as colorGenerator
 from multiprocessing import Pool
 
@@ -31,7 +31,7 @@ train_list = [train_list_path_1, train_list_path_2, train_list_path_3, train_lis
 #
 test_list_path_1 = os.path.join(abs_path, "data", "DAVIS", "ImageSets", "2019", "test-challenge.txt")
 test_list_path_2 = os.path.join(abs_path, "data", "DAVIS", "ImageSets", "2017", "test-challenge.txt")
-test_list = [test_list_path_1, test_list_path_1]
+test_list = [test_list_path_1, test_list_path_2]
 #
 mask_list_path_1 = os.path.join(abs_path, "data", "qd_imd", "test")
 mask_list_path_2 = os.path.join(abs_path, "data", "qd_imd", "train")
@@ -57,21 +57,23 @@ class ImgData(Dataset):
         self.files = []
         self.colors = []
         self.sketches = []
-        self.masks = []
         self.transform = transform_train
         # build color dir and sketch dir.
         if not os.path.exists(ColImgDir):
             os.makedirs(ColImgDir)
         if not os.path.exists(SketchDir):
             os.makedirs(SketchDir)
-        # acess the list of masks.
-        for mask_folder in mask_list:
-            files = os.listdir(mask_folder)
-            for file in tqdm(files):
-                file_path = os.path.join(mask_folder, file)
-                assert os.path.isfile(file_path) and file_path[-3:] == 'png'
-                self.masks.append(file_path)
+        """discard"""
+        # self.masks = []
+        # # acess the list of masks.
+        # for mask_folder in mask_list:
+        #     files = os.listdir(mask_folder)
+        #     for file in tqdm(files):
+        #         file_path = os.path.join(mask_folder, file)
+        #         assert os.path.isfile(file_path) and file_path[-3:] == 'png'
+        #         self.masks.append(file_path)
         # access the list of images.
+        """discard"""
         for imagelist in listset:
             with open(imagelist, 'r') as f:
                 classes = f.read().splitlines()
@@ -113,23 +115,34 @@ class ImgData(Dataset):
         return len(self.files)
 
     def __getitem__(self, idx):
-        Img = Image.open(self.files[idx])
-        sketch_tensor = Image.open(self.sketches[idx])
-        color_tensor = Image.open(self.colors[idx])
-        rand_idx = np.random.randint(low=0, high=len(self.masks))
-        mask_tensor = Image.open(self.masks[rand_idx])
+        Img = np.asarray(Image.open(self.files[idx]), dtype=np.float32)
+        sketch_tensor = np.asarray(Image.open(self.sketches[idx]), dtype=np.float32)
+        color_tensor = np.asarray(Image.open(self.colors[idx]), dtype=np.float32)
+        # todo discard: rand_idx = np.random.randint(low=0, high=len(self.masks))
+        # todo discard: mask_tensor = Image.open(self.masks[rand_idx])
+        # todo: update random seed.
+        mask_tensor = maskGenerator(Img)
+        stroke = strokeGenerator(Img)
+        color_tensor = color_tensor * stroke
+        # covert back to PIL.
+        Img = Image.fromarray(np.uint8(Img))
+        sketch_tensor = Image.fromarray(np.uint8(sketch_tensor))
+        color_tensor = Image.fromarray(np.uint8(color_tensor))
+        mask_tensor = Image.fromarray(np.uint8(mask_tensor[:, :, 0]))
+        #
         return {'Img': 2. * self.transform(Img) - 1.,  # rescale the value of Img into (-1, 1).
                 'Sketch': self.transform(sketch_tensor),
                 'Color': self.transform(color_tensor),
                 'Mask': self.transform(mask_tensor)
                 }
 
-# multi-processing.
+# batch preprocessing before training.
 def get_color_sketch(cla):
     #
     ImgSubDir = os.path.join(ImgDir, cla)
     ColSubDir = os.path.join(ColImgDir, cla)
     SketchSubDir = os.path.join(SketchDir, cla)
+    print(ImgSubDir)
     if not os.path.exists(ColSubDir):
         os.makedirs(ColSubDir)
     if not os.path.exists(SketchSubDir):
@@ -142,12 +155,12 @@ def get_color_sketch(cla):
         color_path = os.path.join(ColSubDir, file)
         if not os.path.exists(color_path):
             img = cv2.imread(file_path)
-            color = colorGenerator(img)[0]
+            color = colorGenerator(img)
             cv2.imwrite(color_path, color)
         # access sketch.
         sketch_path = os.path.join(SketchSubDir, file)
         if not os.path.exists(sketch_path):
-            sketch = sketchGenerator(file_path)[0]
+            sketch = sketchGenerator(file_path)
             cv2.imwrite(sketch_path, sketch)
     return
 
