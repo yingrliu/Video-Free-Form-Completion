@@ -128,7 +128,7 @@ class ImgData(Dataset):
         Img = Image.fromarray(np.uint8(Img))
         sketch_tensor = Image.fromarray(np.uint8(sketch_tensor))
         color_tensor = Image.fromarray(np.uint8(color_tensor))
-        mask_tensor = Image.fromarray(np.uint8(mask_tensor[:, :, 0]))
+        mask_tensor = Image.fromarray(255 * np.uint8(mask_tensor[:, :, 0]))
         #
         return {'Img': 2. * self.transform(Img) - 1.,  # rescale the value of Img into (-1, 1).
                 'Sketch': self.transform(sketch_tensor),
