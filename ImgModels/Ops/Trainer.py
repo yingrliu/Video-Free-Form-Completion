@@ -126,7 +126,7 @@ class _Trainer():
         return
 
     def loadModels(self, PATH):
-        path = PATH if PATH else os.path.join(self.saver.experiment_dir, 'CheckPoint.pth.tar')
+        path = PATH if PATH else os.path.join(self.saver.experiment_dir, 'CheckPoint.pth-{:04d}.tar'.format(0))
         print("-- Load Model from %s." % path)
         if torch.cuda.is_available():
             checkpoint = torch.load(path)
@@ -151,11 +151,11 @@ class _Trainer():
             self.cur_epoch += 1
             records = self._train_epoch(self.cur_epoch)
             _, Imgs = self._evaluate_epoch(self.args.visualize)
-            if epoch % 5 == 0:
+            if self.cur_epoch % 5 == 0:
                 self.saveModels()
             if self.args.visualize:
                 self._writeEvents(epoch=self.cur_epoch, dict_scalar=records, Imgs=Imgs)
-            # # adjust lr.
+            # # todo： adjust lr.
             # self.LRschedulerD.step()
             # self.LRschedulerG.step()
         return

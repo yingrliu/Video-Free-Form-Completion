@@ -42,7 +42,7 @@ class WINDOW(QMainWindow):
         del trainer
         """Set the generative model!"""
         # set the general option of the window.
-        self.setGeometry(150, 150, 1200, 600)
+        self.setGeometry(150, 150, 1300, 700)
         self.setWindowTitle('User-Guided Image Editing')
         self.setWindowIcon(QIcon("logos\ImgLogo.jpg"))
         # set the status bar.
@@ -86,12 +86,14 @@ class WINDOW(QMainWindow):
         self.mouse_clicked = False
         self.input_scene = GraphicsScene(self.modes)
         self.input_GraphicsView.setScene(self.input_scene)
+        self.input_GraphicsView.setFixedSize(self.h, self.w)
         self.input_GraphicsView.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.input_GraphicsView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.input_GraphicsView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         #
         self.output_scene = GraphicsScene(self.modes)
         self.output_GraphicsView.setScene(self.output_scene)
+        self.output_GraphicsView.setFixedSize(self.h, self.w)
         self.output_GraphicsView.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.output_GraphicsView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.output_GraphicsView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -131,7 +133,7 @@ class WINDOW(QMainWindow):
                 QMessageBox.information(self, "Image Viewer",
                                         "Cannot load %s." % fileName)
                 return
-            self.image = image.scaled(self.input_GraphicsView.size(), Qt.IgnoreAspectRatio)
+            self.image = image.scaled(self.h, self.w)
             mat_img = cv2.resize(mat_img, (self.h, self.w), interpolation=cv2.INTER_CUBIC)
             mat_img = cv2.cvtColor(mat_img, cv2.COLOR_BGR2RGB)
             mat_img = mat_img / 127.5 - 1.
@@ -210,17 +212,17 @@ class WINDOW(QMainWindow):
 
     def _generate_color(self, pts):
         if len(pts) > 0:
-            stroke = 255 * np.ones((self.h, self.w, 3), dtype=np.uint8)
+            stroke = np.zeros((self.h, self.w, 3), dtype=np.uint8)
             for pt in pts:
                 c = pt['color'].lstrip('#')
                 color = tuple(int(c[i:i+2], 16) for i in (0, 2, 4))
                 color = (color[2], color[1], color[0])
-                cv2.line(stroke, pt['prev'], pt['curr'], color, 10)
+                cv2.line(stroke, pt['prev'], pt['curr'], color, 6)
             stroke = cv2.cvtColor(stroke, cv2.COLOR_BGR2RGB)
-            stroke = stroke/127.5 - 1
+            stroke = stroke/255
             stroke = np.expand_dims(stroke, axis=0)
         else:
-            stroke = np.ones((1, self.h, self.w, 3))
+            stroke = np.zeros((1, self.h, self.w, 3))
         stroke = np.transpose(stroke, [0, 3, 1, 2])
         return stroke
 
@@ -233,7 +235,7 @@ class WINDOW(QMainWindow):
             sketch = np.zeros((self.h, self.w, 3))
             # sketch = 255*sketch
             for pt in pts:
-                cv2.line(sketch, pt['prev'], pt['curr'], (255, 255, 255), 1)
+                cv2.line(sketch, pt['prev'], pt['curr'], (255, 255, 255), 3)
             sketch = np.asarray(sketch[:, :, 0] / 255, dtype=np.uint8)
             sketch = np.expand_dims(sketch, axis=0)
             sketch = np.expand_dims(sketch, axis=0)
@@ -292,7 +294,8 @@ class WINDOW(QMainWindow):
         if len(self.output_scene.items()) > 0:
             self.output_scene.reset_items()
         qim = QImage(syn_img, self.h, self.w, self.w * 3, QImage.Format_RGB888)
-        self.output_scene.addPixmap(QPixmap.fromImage(qim))
+        image = QPixmap.fromImage(qim)
+        self.output_scene.addPixmap(image)
         self.output_GraphicsView.setAlignment(Qt.AlignCenter)
         #
         return
@@ -323,8 +326,8 @@ class MENUITEM(QAction):
             self.setIcon(QIcon(icon))
         return
 
-args_path = "D:\Projects\\2DVirtual\parameters.yaml"
-checkpoint_path = "D:\Projects\\2DVirtual\CheckPoint.pth-0046.tar"
+args_path = "D:\Projects\VideoEditing\parameters.yaml"
+checkpoint_path = "D:\Projects\VideoEditing\CheckPoint.pth-0013.tar"
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     win = WINDOW(args_path, checkpoint_path)

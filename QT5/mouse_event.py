@@ -92,7 +92,7 @@ class GraphicsScene(QGraphicsScene):
 
     def drawStroke(self, prev_pt, curr_pt):
         lineItem = QGraphicsLineItem(QLineF(prev_pt, curr_pt))
-        lineItem.setPen(QPen(QColor(self.stk_color), 10, Qt.SolidLine))  # rect
+        lineItem.setPen(QPen(QColor(self.stk_color), 6, Qt.SolidLine))  # rect
         self.addItem(lineItem)
 
     def get_stk_color(self, color):
