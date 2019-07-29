@@ -37,7 +37,9 @@ args.lambda_sn = 0.001
 args.lambda_sty = 120
 args.lambda_tv = 0.1
 args.steps_dis = 1
-args.max_epoches = 15
+args.max_epoches = 50
+args.resume = "/data1/yingruliu/Documents/Project-Video-Free-Form-Completion/run/davis/useless/experiment_1/CheckPoint.pth-0013.tar"
+args.train = True
 #
 if __name__ == "__main__":
     trainer = SC_FEGAN_Trainer(args)

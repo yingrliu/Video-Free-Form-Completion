@@ -18,16 +18,14 @@ import numpy as np
 class _Trainer():
     def __init__(self, args, **kwargs):
         args = _checkargs(args)
+        #
+        self.args = args
         self.netG = args.netG
         self.netD = args.netD
         if torch.cuda.is_available():
             self.netG = self.netG.cuda()
             self.netD = self.netD.cuda()
-            if torch.cuda.device_count() > 1 and args.parallel:
-                self.netG = nn.DataParallel(self.netG)
-                self.netD = nn.DataParallel(self.netD)
         #
-        self.args = args
         if hasattr(args, 'train') and args.train:
             # Define Saver and Tensorboard Writer.
             self.saver = Saver(args)
@@ -91,7 +89,13 @@ class _Trainer():
             else:
                 raise ValueError("This project only supports the following LR scheduler: "
                                  "StepLR/MultiStepLR/CosineAnnealingLR/ReduceLROnPlateau.")
-            #
+            # check if load model.
+            if self.args.resume is not None:
+                self.loadModels(self.args.resume)
+            # Data parallel.
+            if torch.cuda.device_count() > 1 and args.parallel:
+                self.netG = nn.DataParallel(self.netG)
+                self.netD = nn.DataParallel(self.netD)
             self.cur_epoch = 0
         return
 
@@ -143,9 +147,6 @@ class _Trainer():
         train_loss = 0.0
         self.netG.train()
         self.netD.train()
-        # check if load model.
-        if self.args.resume is not None:
-            self.loadModels(self.args.resume)
         #
         for epoch in range(self.args.max_epoches):
             self.cur_epoch += 1
