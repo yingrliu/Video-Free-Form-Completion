@@ -59,21 +59,6 @@ class ImgData(Dataset):
         self.sketches = []
         self.transform = transform_train
         # build color dir and sketch dir.
-        if not os.path.exists(ColImgDir):
-            os.makedirs(ColImgDir)
-        if not os.path.exists(SketchDir):
-            os.makedirs(SketchDir)
-        """discard"""
-        # self.masks = []
-        # # acess the list of masks.
-        # for mask_folder in mask_list:
-        #     files = os.listdir(mask_folder)
-        #     for file in tqdm(files):
-        #         file_path = os.path.join(mask_folder, file)
-        #         assert os.path.isfile(file_path) and file_path[-3:] == 'png'
-        #         self.masks.append(file_path)
-        # access the list of images.
-        """discard"""
         for imagelist in listset:
             with open(imagelist, 'r') as f:
                 classes = f.read().splitlines()
@@ -118,9 +103,6 @@ class ImgData(Dataset):
         Img = np.asarray(Image.open(self.files[idx]), dtype=np.float32)
         sketch_tensor = np.asarray(Image.open(self.sketches[idx]), dtype=np.float32)
         color_tensor = np.asarray(Image.open(self.colors[idx]), dtype=np.float32)
-        # todo discard: rand_idx = np.random.randint(low=0, high=len(self.masks))
-        # todo discard: mask_tensor = Image.open(self.masks[rand_idx])
-        # todo: update random seed.
         mask_tensor = maskGenerator(Img)
         stroke = strokeGenerator(Img)
         color_tensor = color_tensor * stroke
@@ -136,6 +118,48 @@ class ImgData(Dataset):
                 'Mask': self.transform(mask_tensor)
                 }
 
+
+# todo:
+class VideoData(Dataset):
+    def __init__(self, resize=None, train=True):
+        listset = train_list if train else test_list
+        #
+        if resize:
+            transform_train = transforms.Compose([
+                transforms.Resize(size=resize),
+                transforms.ToTensor(),
+            ]
+            )
+        else:
+            transform_train = transforms.Compose([
+                transforms.ToTensor(),
+            ]
+            )
+            #
+        self.video = []
+        self.files_per_video = {}
+        self.colors = []
+        self.sketches = []
+        self.transform = transform_train
+        for imagelist in listset:
+            with open(imagelist, 'r') as f:
+                classes = f.read().splitlines()
+                for cla in classes:
+                    self.video.append(cla)
+                    # access the images of the video.
+                    #
+                    ImgSubDir = os.path.join(ImgDir, cla)
+                    ColSubDir = os.path.join(ColImgDir, cla)
+                    SketchSubDir = os.path.join(SketchDir, cla)
+                    if not os.path.exists(ColSubDir):
+                        os.makedirs(ColSubDir)
+                    if not os.path.exists(SketchSubDir):
+                        os.makedirs(SketchSubDir)
+                    #
+                    files = os.listdir(ImgSubDir)
+                    self.files_per_video[cla] = files
+        return
+########################################################################################################################
 # batch preprocessing before training.
 def get_color_sketch(cla):
     #

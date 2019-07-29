@@ -55,7 +55,7 @@ class WINDOW(QMainWindow):
         #
         self.ld_mask = None
         self.ld_sk = None
-        self.h, self.w = 512, 512
+        self.h, self.w = 384, 768
         # set tool bar.
         toobar = self.addToolBar('Edit')
         toobar.setFixedHeight(85)
@@ -86,14 +86,14 @@ class WINDOW(QMainWindow):
         self.mouse_clicked = False
         self.input_scene = GraphicsScene(self.modes)
         self.input_GraphicsView.setScene(self.input_scene)
-        self.input_GraphicsView.setFixedSize(self.h, self.w)
+        self.input_GraphicsView.setFixedSize(self.w, self.h)
         self.input_GraphicsView.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.input_GraphicsView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.input_GraphicsView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         #
         self.output_scene = GraphicsScene(self.modes)
         self.output_GraphicsView.setScene(self.output_scene)
-        self.output_GraphicsView.setFixedSize(self.h, self.w)
+        self.output_GraphicsView.setFixedSize(self.w, self.h)
         self.output_GraphicsView.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.output_GraphicsView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.output_GraphicsView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -133,8 +133,8 @@ class WINDOW(QMainWindow):
                 QMessageBox.information(self, "Image Viewer",
                                         "Cannot load %s." % fileName)
                 return
-            self.image = image.scaled(self.h, self.w)
-            mat_img = cv2.resize(mat_img, (self.h, self.w), interpolation=cv2.INTER_CUBIC)
+            self.image = image.scaled(self.w, self.h)
+            mat_img = cv2.resize(mat_img, (self.w, self.h), interpolation=cv2.INTER_CUBIC)
             mat_img = cv2.cvtColor(mat_img, cv2.COLOR_BGR2RGB)
             mat_img = mat_img / 127.5 - 1.
             mat_img = np.transpose(mat_img, [2, 0, 1])
@@ -293,7 +293,7 @@ class WINDOW(QMainWindow):
         """Visualize the synthesized output."""
         if len(self.output_scene.items()) > 0:
             self.output_scene.reset_items()
-        qim = QImage(syn_img, self.h, self.w, self.w * 3, QImage.Format_RGB888)
+        qim = QImage(syn_img, syn_img.shape[1], syn_img.shape[0], syn_img.strides[0], QImage.Format_RGB888)
         image = QPixmap.fromImage(qim)
         self.output_scene.addPixmap(image)
         self.output_GraphicsView.setAlignment(Qt.AlignCenter)
